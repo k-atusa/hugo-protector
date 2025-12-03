@@ -1,0 +1,23 @@
+{
+  "name": "hugo-protector",
+  "version": "0.1.0",
+  "description": "Client-side AES-256 protection toolkit for Hugo sites",
+  "license": "MIT",
+  "bin": {
+    "hugo-protector": "bin/hugo-protector.js"
+  },
+  "scripts": {
+    "lint": "echo 'no lint configured'",
+    "test": "node --test"
+  },
+  "keywords": [
+    "hugo",
+    "encryption",
+    "aes",
+    "shortcode",
+    "static-site"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
