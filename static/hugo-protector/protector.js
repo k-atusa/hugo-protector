@@ -7,6 +7,16 @@
   const decoder = new TextDecoder();
   const subtle = window.crypto.subtle;
 
+  function ensureStyles() {
+    if (document.getElementById('hugo-protector-styles')) {
+      return;
+    }
+    const style = document.createElement('style');
+    style.id = 'hugo-protector-styles';
+    style.textContent = '[data-hugo-protector-mode="block"]{white-space:pre-wrap;word-break:break-word;}';
+    document.head.appendChild(style);
+  }
+
   function base64ToUint8Array(base64) {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -230,6 +240,7 @@
   }
 
   function init() {
+    ensureStyles();
     initBlocks();
     initFullPage();
   }
