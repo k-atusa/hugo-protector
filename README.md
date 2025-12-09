@@ -55,6 +55,10 @@ Flags of interest:
 | `--iterations <num>` | Override PBKDF2 iterations (default `310000`). |
 | `-m, --mode <shortcode|page>` | Choose helper snippet style (default `shortcode`). |
 | `--format <raw|helper>` | `raw` outputs base64 payload only; `helper` prints ready-to-paste snippet. |
+| `--shortcode-format <html|markdown>` | Adds a `format` attribute when emitting shortcode helpers (default `markdown`). |
+| `--prompt <text>` | Adds a `prompt` attribute to the shortcode helper output. |
+| `--button <text>` | Adds a `button` attribute to the shortcode helper output. |
+| `--hint <text>` | Adds a `hint` attribute to the shortcode helper output. |
 
 ## Shortcode Usage (Partial Protection)
 
@@ -70,8 +74,33 @@ Parameters:
 - `prompt` (optional): label displayed above the password input.
 - `button` (optional): custom unlock button text.
 - `hint` (optional): small helper text rendered under the form.
+-- `format` (optional): `html` (deprecated) or `markdown` (default). The runtime renders Markdown when this attribute is present and set to `markdown`. CLI helper output now defaults to `markdown`, so no extra flag is needed unless you explicitly want `html` behavior.
+
+When using the CLI helper output, pass `--shortcode-format html` to force plain HTML output, or use `--prompt`, `--button`, and `--hint` to localize the unlock form directly from the CLI.
 
 When the page loads, the shortcode renders a password form. On successful decrypt, the placeholder is replaced with the original HTML fragment.
+
+Example encrypting Markdown directly:
+
+```bash
+npx hugo-protector encrypt \
+	--text "enc" \
+	--password-file .password \
+	--shortcode-format markdown \
+	--prompt "team password" \
+	--button "open" \
+	--hint "announced on Slack"
+```
+
+```
+{{< protector 
+	payload="BASE64_PAYLOAD"
+	prompt="team password" 
+	button="open"
+	hint="announced on Slack" 
+	format="markdown"
+>}}
+```
 
 ## Full-Page Protection
 

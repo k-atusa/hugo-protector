@@ -17,6 +17,10 @@ Options:
       --iterations <number>  Override PBKDF2 iterations (default: ${DEFAULT_ITERATIONS})
   -o, --output <file>        Write payload/snippet to file instead of stdout
       --format <raw|helper>  raw = base64 payload only, helper = mode-specific snippet (default: helper)
+      --shortcode-format <html|markdown>  Add format attribute when using shortcode helper output (default: markdown)
+      --prompt <text>        Add prompt attribute to shortcode helper output
+      --button <text>        Add button attribute to shortcode helper output
+      --hint <text>          Add hint attribute to shortcode helper output
   -h, --help                 Show this message
 
 Examples:
@@ -70,6 +74,22 @@ const parseArgs = argv => {
           args.format = next;
           i += 1;
           break;
+        case '--shortcode-format':
+          args.shortcodeFormat = next;
+          i += 1;
+          break;
+        case '--prompt':
+          args.prompt = next;
+          i += 1;
+          break;
+        case '--button':
+          args.button = next;
+          i += 1;
+          break;
+        case '--hint':
+          args.hint = next;
+          i += 1;
+          break;
         case '-h':
         case '--help':
           args.help = true;
@@ -115,11 +135,27 @@ const readInput = args => {
   });
 };
 
-const renderHelper = (mode, payload) => {
+const escapeAttribute = value => String(value).replace(/"/g, '&quot;');
+
+const renderHelper = (mode, payload, options = {}) => {
   if (mode === 'page') {
     return `# front matter snippet\nprotector_full_page_payload: "${payload}"`;
   }
-  return `{{< protector payload="${payload}" >}}`;
+  const attrs = [];
+  const pushAttr = (name, value) => {
+    if (value === undefined || value === null || value === '') return;
+    attrs.push(`${name}="${escapeAttribute(value)}"`);
+  };
+
+  pushAttr('payload', payload);
+  if (options.shortcodeFormat) {
+    pushAttr('format', options.shortcodeFormat);
+  }
+  pushAttr('prompt', options.prompt);
+  pushAttr('button', options.button);
+  pushAttr('hint', options.hint);
+
+  return `{{< protector ${attrs.join(' ')} >}}`;
 };
 
 const writeOutput = (args, content) => {
@@ -151,7 +187,20 @@ const run = async (argv = process.argv.slice(2)) => {
 
   const format = args.format || 'helper';
   const mode = args.mode || 'shortcode';
-  const content = format === 'raw' ? payload : renderHelper(mode, payload);
+  if (args.shortcodeFormat && !['html', 'markdown'].includes(args.shortcodeFormat)) {
+    throw new Error('Invalid --shortcode-format. Use "html" or "markdown".');
+  }
+  const helperOptions = mode === 'shortcode'
+    ? {
+        shortcodeFormat: args.shortcodeFormat || 'markdown',
+        prompt: args.prompt,
+        button: args.button,
+        hint: args.hint
+      }
+    : undefined;
+  const content = format === 'raw'
+    ? payload
+    : renderHelper(mode, payload, helperOptions);
   writeOutput(args, content);
 };
 

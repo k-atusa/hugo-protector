@@ -17,6 +17,149 @@
     document.head.appendChild(style);
   };
 
+  const escapeHtml = text => {
+    if (text == null) {
+      return '';
+    }
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const escapeAttribute = value => {
+    if (value == null) {
+      return '';
+    }
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  const renderInlineMarkdown = text => {
+    if (!text) {
+      return '';
+    }
+    // Process markdown syntax BEFORE escaping so that *, `, [ are still present
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, (_m, c) => `<strong>${escapeHtml(c)}</strong>`)
+      .replace(/\*([^*]+)\*/g, (_m, c) => `<em>${escapeHtml(c)}</em>`)
+      .replace(/`([^`]+)`/g, (_m, c) => `<code>${escapeHtml(c)}</code>`)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label, url) => `<a href="${escapeAttribute(url)}" rel="noopener noreferrer">${escapeHtml(label)}</a>`)
+      // Escape any remaining plain text (chars outside the tags we just inserted)
+      .replace(/(?<=>)([^<]+)(?=<)/g, (_m, c) => escapeHtml(c));
+  };
+
+  const markdownToHtml = markdown => {
+    if (!markdown) {
+      return '';
+    }
+    const lines = markdown.replace(/\r\n/g, '\n').split('\n');
+    const html = [];
+    let inCodeBlock = false;
+    let codeBuffer = [];
+    let inList = false;
+    let listItems = [];
+    let paragraph = [];
+
+    const flushParagraph = () => {
+      if (paragraph.length) {
+        html.push(`<p>${renderInlineMarkdown(paragraph.join(' '))}</p>`);
+        paragraph = [];
+      }
+    };
+
+    const flushList = () => {
+      if (inList) {
+        html.push(`<ul>${listItems.join('')}</ul>`);
+        listItems = [];
+        inList = false;
+      }
+    };
+
+    const flushCode = () => {
+      if (codeBuffer.length) {
+        html.push(`<pre><code>${escapeHtml(codeBuffer.join('\n'))}</code></pre>`);
+        codeBuffer = [];
+      }
+    };
+
+    lines.forEach(line => {
+      if (line.trim().startsWith('```')) {
+        if (!inCodeBlock) {
+          flushParagraph();
+          flushList();
+          inCodeBlock = true;
+          return;
+        }
+        inCodeBlock = false;
+        flushCode();
+        return;
+      }
+
+      if (inCodeBlock) {
+        codeBuffer.push(line);
+        return;
+      }
+
+      if (!line.trim()) {
+        flushParagraph();
+        flushList();
+        return;
+      }
+
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+      if (headingMatch) {
+        flushParagraph();
+        flushList();
+        const level = headingMatch[1].length;
+        html.push(`<h${level}>${renderInlineMarkdown(headingMatch[2])}</h${level}>`);
+        return;
+      }
+
+      const listMatch = line.match(/^\s*[-*+]\s+(.*)$/);
+      if (listMatch) {
+        flushParagraph();
+        if (!inList) {
+          inList = true;
+          listItems = [];
+        }
+        listItems.push(`<li>${renderInlineMarkdown(listMatch[1])}</li>`);
+        return;
+      }
+
+      const quoteMatch = line.match(/^\s*>\s?(.*)$/);
+      if (quoteMatch) {
+        flushParagraph();
+        flushList();
+        html.push(`<blockquote>${renderInlineMarkdown(quoteMatch[1])}</blockquote>`);
+        return;
+      }
+
+      paragraph.push(line.trim());
+    });
+
+    if (inCodeBlock) {
+      flushCode();
+    } else {
+      flushParagraph();
+      flushList();
+    }
+
+    return html.join('');
+  };
+
+  const renderContent = (plaintext, format) => {
+    if (format === 'markdown') {
+      return markdownToHtml(plaintext);
+    }
+    return plaintext;
+  };
+
   const base64ToUint8Array = base64 => {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
@@ -150,6 +293,7 @@
     const prompt = el.getAttribute('data-hugo-protector-prompt');
     const hint = el.getAttribute('data-hugo-protector-hint');
     const button = el.getAttribute('data-hugo-protector-button');
+    const format = (el.getAttribute('data-hugo-protector-format') || 'html').toLowerCase();
 
     const { wrapper, form, input, message } = createForm({
       prompt,
@@ -171,7 +315,8 @@
       form.classList.add('is-working');
       try {
         const plaintext = await decryptPayload(payload, password);
-        injectHTML(el, plaintext);
+        const rendered = renderContent(plaintext, format);
+        injectHTML(el, rendered);
       } catch (error) {
         renderError(message, 'Unable to decrypt payload');
       } finally {
