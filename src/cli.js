@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { encryptText, decryptPayload, DEFAULT_ITERATIONS } = require('./encryption');
 
-function printHelp() {
+const printHelp = () => {
   const help = `hugo-protector
 
 Usage:
@@ -24,9 +24,9 @@ Examples:
   hugo-protector encrypt --text "<p>snippet</p>" -p mypass -m page --format raw
 `;
   console.log(help);
-}
+};
 
-function parseArgs(argv) {
+const parseArgs = argv => {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
@@ -82,9 +82,9 @@ function parseArgs(argv) {
     }
   }
   return args;
-}
+};
 
-function readPassword(args) {
+const readPassword = args => {
   if (args.password) {
     return args.password;
   }
@@ -95,9 +95,9 @@ function readPassword(args) {
     return process.env.HUGO_PROTECTOR_PASSWORD;
   }
   throw new Error('Password not provided. Use --password-file or set HUGO_PROTECTOR_PASSWORD.');
-}
+};
 
-function readInput(args) {
+const readInput = args => {
   if (args.text !== undefined) {
     return Promise.resolve(args.text);
   }
@@ -113,24 +113,24 @@ function readInput(args) {
     process.stdin.on('end', () => resolve(data));
     process.stdin.on('error', reject);
   });
-}
+};
 
-function renderHelper(mode, payload) {
+const renderHelper = (mode, payload) => {
   if (mode === 'page') {
     return `# front matter snippet\nprotector_full_page_payload: "${payload}"`;
   }
   return `{{< protector payload="${payload}" >}}`;
-}
+};
 
-function writeOutput(args, content) {
+const writeOutput = (args, content) => {
   if (args.output) {
     fs.writeFileSync(path.resolve(args.output), content, 'utf8');
     return;
   }
   process.stdout.write(`${content}\n`);
-}
+};
 
-async function run(argv = process.argv.slice(2)) {
+const run = async (argv = process.argv.slice(2)) => {
   const args = parseArgs(argv);
   if (args.help || args._[0] === 'help' || argv.length === 0) {
     printHelp();
@@ -153,6 +153,6 @@ async function run(argv = process.argv.slice(2)) {
   const mode = args.mode || 'shortcode';
   const content = format === 'raw' ? payload : renderHelper(mode, payload);
   writeOutput(args, content);
-}
+};
 
 module.exports = { run };

@@ -7,7 +7,7 @@
   const decoder = new TextDecoder();
   const subtle = window.crypto.subtle;
 
-  function ensureStyles() {
+  const ensureStyles = () => {
     if (document.getElementById('hugo-protector-styles')) {
       return;
     }
@@ -15,34 +15,34 @@
     style.id = 'hugo-protector-styles';
     style.textContent = '[data-hugo-protector-mode="block"]{white-space:pre-wrap;word-break:break-word;}';
     document.head.appendChild(style);
-  }
+  };
 
-  function base64ToUint8Array(base64) {
+  const base64ToUint8Array = base64 => {
     const binary = atob(base64);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i += 1) {
       bytes[i] = binary.charCodeAt(i);
     }
     return bytes;
-  }
+  };
 
-  function concatUint8Arrays(a, b) {
+  const concatUint8Arrays = (a, b) => {
     const combined = new Uint8Array(a.length + b.length);
     combined.set(a, 0);
     combined.set(b, a.length);
     return combined;
-  }
+  };
 
-  function parsePayload(payloadBase64) {
+  const parsePayload = payloadBase64 => {
     try {
       const json = atob(payloadBase64);
       return JSON.parse(json);
     } catch (error) {
       throw new Error('Invalid payload format');
     }
-  }
+  };
 
-  async function deriveKey(password, salt, iterations) {
+  const deriveKey = async (password, salt, iterations) => {
     const keyMaterial = await subtle.importKey(
       'raw',
       encoder.encode(password),
@@ -66,9 +66,9 @@
       false,
       ['decrypt']
     );
-  }
+  };
 
-  async function decryptPayload(payloadBase64, password) {
+  const decryptPayload = async (payloadBase64, password) => {
     const payload = parsePayload(payloadBase64);
     const salt = base64ToUint8Array(payload.salt);
     const iv = base64ToUint8Array(payload.iv);
@@ -88,9 +88,9 @@
       combined
     );
     return decoder.decode(plaintextBuffer);
-  }
+  };
 
-  function createForm(options = {}) {
+  const createForm = (options = {}) => {
     const wrapper = document.createElement('div');
     wrapper.className = 'hugo-protector-form';
 
@@ -126,23 +126,23 @@
     wrapper.appendChild(message);
 
     return { wrapper, form, input, message };
-  }
+  };
 
-  function renderError(target, message) {
+  const renderError = (target, message) => {
     target.textContent = message;
     target.dataset.state = 'error';
-  }
+  };
 
-  function clearMessage(target) {
+  const clearMessage = target => {
     target.textContent = '';
     target.dataset.state = '';
-  }
+  };
 
-  function injectHTML(target, html) {
+  const injectHTML = (target, html) => {
     target.innerHTML = html;
-  }
+  };
 
-  function mountBlock(el) {
+  const mountBlock = el => {
     const payload = el.getAttribute('data-hugo-protector-payload');
     if (!payload) {
       return;
@@ -179,9 +179,9 @@
         input.value = '';
       }
     });
-  }
+  };
 
-  function mountFullPage(el) {
+  const mountFullPage = el => {
     const payload = el.getAttribute('data-hugo-protector-payload');
     if (!payload) {
       return;
@@ -219,9 +219,9 @@
         input.value = '';
       }
     });
-  }
+  };
 
-  function initBlocks() {
+  const initBlocks = () => {
     const blocks = document.querySelectorAll('[data-hugo-protector-mode="block"]');
     blocks.forEach(el => {
       if (!el.dataset.hugoProtectorReady) {
@@ -229,21 +229,21 @@
         el.dataset.hugoProtectorReady = 'true';
       }
     });
-  }
+  };
 
-  function initFullPage() {
+  const initFullPage = () => {
     const page = document.querySelector('[data-hugo-protector-mode="page"]');
     if (page && !page.dataset.hugoProtectorReady) {
       mountFullPage(page);
       page.dataset.hugoProtectorReady = 'true';
     }
-  }
+  };
 
-  function init() {
+  const init = () => {
     ensureStyles();
     initBlocks();
     initFullPage();
-  }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

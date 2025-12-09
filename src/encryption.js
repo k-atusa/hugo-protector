@@ -6,22 +6,18 @@ const IV_LENGTH = 12;
 const KEY_LENGTH = 32; // 256 bits
 const ALGORITHM = 'aes-256-gcm';
 
-function toBase64(buffer) {
-  return Buffer.from(buffer).toString('base64');
-}
+const toBase64 = buffer => Buffer.from(buffer).toString('base64');
 
-function fromBase64(value) {
-  return Buffer.from(value, 'base64');
-}
+const fromBase64 = value => Buffer.from(value, 'base64');
 
-function deriveKey(password, salt, iterations) {
+const deriveKey = (password, salt, iterations) => {
   if (!password || typeof password !== 'string') {
     throw new Error('Password is required to derive encryption key.');
   }
   return crypto.pbkdf2Sync(password, salt, iterations, KEY_LENGTH, 'sha256');
-}
+};
 
-function encryptText(plaintext, password, options = {}) {
+const encryptText = (plaintext, password, options = {}) => {
   if (typeof plaintext !== 'string' || plaintext.length === 0) {
     throw new Error('Plaintext must be a non-empty string.');
   }
@@ -49,9 +45,9 @@ function encryptText(plaintext, password, options = {}) {
   };
 
   return Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
-}
+};
 
-function decryptPayload(payloadBase64, password) {
+const decryptPayload = (payloadBase64, password) => {
   if (!payloadBase64) {
     throw new Error('Payload is missing');
   }
@@ -66,7 +62,7 @@ function decryptPayload(payloadBase64, password) {
   decipher.setAuthTag(fromBase64(tag));
   const plaintext = Buffer.concat([decipher.update(fromBase64(ct)), decipher.final()]);
   return plaintext.toString('utf8');
-}
+};
 
 module.exports = {
   ALGORITHM,
